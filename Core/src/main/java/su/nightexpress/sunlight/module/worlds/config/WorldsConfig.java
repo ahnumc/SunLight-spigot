@@ -23,10 +23,10 @@ public class WorldsConfig {
 
     public static final ConfigValue<Set<InventoryType>> INVENTORY_SPLIT_INVENTORIES = ConfigValue.forSet("Inventory_Split.Affected_Inventories",
         (raw) -> StringUtil.getEnum(raw, InventoryType.class).orElse(null),
-        (cfg, path, set) -> cfg.set(path, set.stream().map(Enum::name).toList()),
+        (cfg, path, set) -> cfg.set(path, set.stream().map(Enum::name).sorted().toList()),
         () -> INVENTORY_SPLIT_TYPES,
         "List of Inventory Types that are affected by the Inventory Split feature.",
-        "Allowed values: " + INVENTORY_SPLIT_TYPES.stream().map(Enum::name).collect(Collectors.joining(", "))
+        "Allowed values: " + INVENTORY_SPLIT_TYPES.stream().map(Enum::name).sorted().collect(Collectors.joining(", "))
     );
 
     public static final ConfigValue<Map<String, Set<String>>> INVENTORY_SPLIT_WORLD_GROUPS = ConfigValue.forMap("Inventory_Split.World_Groups",
