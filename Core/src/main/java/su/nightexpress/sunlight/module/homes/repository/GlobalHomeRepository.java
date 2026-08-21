@@ -47,7 +47,7 @@ public class GlobalHomeRepository {
 
     @NotNull
     public Set<Home> getAll(@NotNull Predicate<Home> predicate) {
-        return this.homesByOwnerMap.values().stream().flatMap(repository -> repository.getAll().stream()).collect(Collectors.toSet());
+        return this.homesByOwnerMap.values().stream().flatMap(repository -> repository.getAll(predicate).stream()).collect(Collectors.toSet());
     }
 
     @NotNull

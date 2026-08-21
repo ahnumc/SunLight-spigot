@@ -3,13 +3,13 @@ package su.nightexpress.sunlight.module.homes.data;
 import com.google.gson.reflect.TypeToken;
 import org.bukkit.Location;
 import org.bukkit.World;
+import org.jetbrains.annotations.NotNull;
 import su.nightexpress.nightcore.db.statement.RowMapper;
 import su.nightexpress.nightcore.db.statement.template.InsertStatement;
 import su.nightexpress.nightcore.db.statement.template.UpdateStatement;
 import su.nightexpress.nightcore.user.UserInfo;
 import su.nightexpress.nightcore.util.Enums;
 import su.nightexpress.nightcore.util.LocationUtil;
-import su.nightexpress.nightcore.util.geodata.pos.BlockPos;
 import su.nightexpress.nightcore.util.geodata.pos.ExactPos;
 import su.nightexpress.sunlight.data.DataHandler;
 import su.nightexpress.sunlight.module.homes.impl.Home;
@@ -21,6 +21,34 @@ import java.util.Set;
 import java.util.UUID;
 
 public class HomesQueries {
+
+    @NotNull
+    static ExactPos deserializePosition(@NotNull String raw) {
+        String[] values = raw.split(",");
+        if (values.length < 3) return ExactPos.empty();
+
+        try {
+            double x = Double.parseDouble(values[0].trim());
+            double y = Double.parseDouble(values[1].trim());
+            double z = Double.parseDouble(values[2].trim());
+            float pitch = values.length > 3 ? parseAngle(values[3]) : 0F;
+            float yaw = values.length > 4 ? parseAngle(values[4]) : 0F;
+
+            return new ExactPos(x, y, z, yaw, pitch);
+        }
+        catch (NumberFormatException exception) {
+            return ExactPos.empty();
+        }
+    }
+
+    private static float parseAngle(@NotNull String value) {
+        try {
+            return Float.parseFloat(value.trim());
+        }
+        catch (NumberFormatException exception) {
+            return 0F;
+        }
+    }
 
     public static final RowMapper<Home> OLD_HOME_ROW_MAPPER = resultSet -> {
         try {
@@ -61,16 +89,7 @@ public class HomesQueries {
             String name = HomeColumns.NAME.readOrThrow(resultSet);
             String iconId = HomeColumns.ICON_ID.readOrThrow(resultSet);
 
-            String posRaw = HomeColumns.POSITION.readOrThrow(resultSet);
-            ExactPos pos;
-
-            if (posRaw.split(",").length < 5) {
-                BlockPos blockPos = BlockPos.deserialize(posRaw);
-                pos = ExactPos.from(blockPos);
-            }
-            else {
-                pos = ExactPos.deserialize(posRaw);
-            }
+            ExactPos pos = deserializePosition(HomeColumns.POSITION.readOrThrow(resultSet));
 
             String worldName = HomeColumns.WORLD.readOrThrow(resultSet);
 

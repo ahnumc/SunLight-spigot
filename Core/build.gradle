@@ -7,6 +7,17 @@ dependencies {
     implementation project(':NMS')
     implementation project(":MC_1_21_11")
     implementation project(":nms-26-1")
+
+    testImplementation platform('org.junit:junit-bom:5.13.4')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testImplementation 'org.mockito:mockito-core:5.18.0'
+    testImplementation 'su.nightexpress.nightcore:main:2.16.4'
+    testImplementation 'io.papermc.paper:paper-api:26.1.2.build.74-stable'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+tasks.withType(Test).configureEach {
+    useJUnitPlatform()
 }
 
 // Configure the shadowJar task to bundle the necessary dependencies.

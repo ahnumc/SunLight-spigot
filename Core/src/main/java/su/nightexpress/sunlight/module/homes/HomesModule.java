@@ -453,6 +453,12 @@ public class HomesModule extends Module {
             return false;
         }
 
+        if (home.getBlockPos().isEmpty()) {
+            this.sendPrefixed(HomesLang.HOME_TELEPORT_ERROR_CORRUPTED, player, builder -> builder.with(home
+                .placeholders()));
+            return false;
+        }
+
         PlayerHomeTeleportEvent event = new PlayerHomeTeleportEvent(player, home);
         this.plugin.getPluginManager().callEvent(event);
         if (event.isCancelled()) return false;

@@ -42,6 +42,7 @@ public class HomeDataManager {
             .build();
 
         this.dataHandler.createTable(this.tableHomes);
+        this.dataHandler.ensureVarcharLength(this.tableHomes, HomeColumns.POSITION, 64);
         this.dataHandler.dropColumn(this.tableHomes, "isRespawnPoint");
 
         if (this.dataHandler.hasColumn(this.tableHomes, HomeColumns.LOCATION)) {

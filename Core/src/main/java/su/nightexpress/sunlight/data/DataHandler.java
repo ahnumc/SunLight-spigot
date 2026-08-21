@@ -5,6 +5,7 @@ import com.google.gson.GsonBuilder;
 import org.jetbrains.annotations.NotNull;
 import su.nightexpress.nightcore.db.AbstractDatabaseManager;
 import su.nightexpress.nightcore.db.column.Column;
+import su.nightexpress.nightcore.db.config.DatabaseType;
 import su.nightexpress.nightcore.db.statement.condition.Operator;
 import su.nightexpress.nightcore.db.statement.condition.Wheres;
 import su.nightexpress.nightcore.db.statement.template.InsertStatement;
@@ -20,6 +21,11 @@ import su.nightexpress.sunlight.data.serialize.UserInfoSerializer;
 import su.nightexpress.sunlight.user.SunUser;
 
 import java.net.InetAddress;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -128,5 +134,29 @@ public class DataHandler extends AbstractDatabaseManager<SunLightPlugin> impleme
         String host = address.getHostAddress();
 
         return this.selectWhere(this.usersTable, DataQueries.SELECT_PROFILE, Wheres.where(UserColumns.INET_ADDRESS, Operator.EQUALS, o -> host));
+    }
+
+    public void ensureVarcharLength(@NotNull Table table, @NotNull Column<?> column, int minimumLength) {
+        if (this.getDatabaseType() != DatabaseType.MYSQL) return;
+
+        String columnLengthQuery = "SELECT CHARACTER_MAXIMUM_LENGTH FROM INFORMATION_SCHEMA.COLUMNS " +
+            "WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?";
+        try (Connection connection = this.getConnection();
+             PreparedStatement query = connection.prepareStatement(columnLengthQuery)) {
+            query.setString(1, table.getName());
+            query.setString(2, column.getName());
+
+            try (ResultSet resultSet = query.executeQuery()) {
+                if (!resultSet.next() || resultSet.getInt(1) >= minimumLength) return;
+            }
+
+            String sql = "ALTER TABLE " + table.getName() + " MODIFY " + column.toSqlWithDefault(DatabaseType.MYSQL);
+            try (Statement statement = connection.createStatement()) {
+                statement.executeUpdate(sql);
+            }
+        }
+        catch (SQLException exception) {
+            this.plugin.warn("Failed to widen column '" + column.getName() + "' in '" + table.getName() + "': " + exception.getMessage());
+        }
     }
 }

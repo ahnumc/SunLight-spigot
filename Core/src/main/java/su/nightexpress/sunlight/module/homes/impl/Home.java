@@ -115,8 +115,10 @@ public class Home implements PlaceholderResolvable {
     }
 
     public void updateLocation(Location location) {
-        this.setWorldName(location.getWorld().getName());
+        World world = location.getWorld();
+        this.setWorldName(world.getName());
         this.setBlockPos(ExactPos.from(location));
+        this.activate(world);
     }
 
     public void markDirty() {

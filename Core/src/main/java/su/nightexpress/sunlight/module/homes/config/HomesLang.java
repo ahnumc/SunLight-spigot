@@ -92,6 +92,11 @@ public class HomesLang extends Lang {
         GRAY.wrap("Home " + ORANGE.wrap(HOME_NAME) + " located in a world that is currently unavailable.")
     );
 
+    public static final MessageLocale HOME_TELEPORT_ERROR_CORRUPTED = LangEntry.builder("Homes.Home.Teleports.Error.Corrupted").chatMessage(
+        Sound.ENTITY_VILLAGER_NO,
+        GRAY.wrap("Home " + ORANGE.wrap(HOME_NAME) + " has a corrupted saved location. Please set it again with " + ORANGE.wrap("/sethome") + ".")
+    );
+
     public static final MessageLocale HOME_TELEPORT_SUCCESS = LangEntry.builder("Homes.Home.Teleports.Success").titleMessage(
         ORANGE.wrap(BOLD.wrap("Home")),
         GRAY.wrap("You have teleported to " + ORANGE.wrap(HOME_NAME) + " home."),
