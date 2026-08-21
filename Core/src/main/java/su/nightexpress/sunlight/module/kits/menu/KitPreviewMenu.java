@@ -66,10 +66,10 @@ public class KitPreviewMenu extends AbstractObjectMenu<Kit> {
 
     @Override
     protected void onLoad(@NotNull FileConfig config) {
-        int[] hotbarSlots = ConfigProperty.of(ConfigTypes.INT_ARRAY, "Content.Hotbar-Slots", IntStream.range(45, 54).toArray()).resolveWithDefaults(config);
-        int[] itemSlots = ConfigProperty.of(ConfigTypes.INT_ARRAY, "Content.Inventory-Slots", IntStream.range(18, 45).toArray()).resolveWithDefaults(config);
-        int[] armorSlots = ConfigProperty.of(ConfigTypes.INT_ARRAY, "Content.Armor-Slots", IntStream.range(0, 4).toArray()).resolveWithDefaults(config);
-        int[] extraSlots = ConfigProperty.of(ConfigTypes.INT_ARRAY, "Content.Extra-Slots", new int[]{4}).resolveWithDefaults(config);
+        int[] hotbarSlots = ConfigProperty.of(ConfigTypes.INT_ARRAY, "Preview-Slots.Hotbar", IntStream.range(45, 54).toArray()).resolveWithDefaults(config);
+        int[] itemSlots = ConfigProperty.of(ConfigTypes.INT_ARRAY, "Preview-Slots.Inventory", IntStream.range(18, 45).toArray()).resolveWithDefaults(config);
+        int[] armorSlots = ConfigProperty.of(ConfigTypes.INT_ARRAY, "Preview-Slots.Armor", IntStream.range(0, 4).toArray()).resolveWithDefaults(config);
+        int[] extraSlots = ConfigProperty.of(ConfigTypes.INT_ARRAY, "Preview-Slots.Extra", new int[]{4}).resolveWithDefaults(config);
 
         this.fusedSlots = new ArrayList<>();
         this.fusedSlots.addAll(IntStream.of(hotbarSlots).boxed().toList());
