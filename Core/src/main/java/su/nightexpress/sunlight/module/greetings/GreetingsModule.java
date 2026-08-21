@@ -77,6 +77,11 @@ public class GreetingsModule extends Module {
             return;
         }
 
+        if (message.getMessage().isBlank()) {
+            consumer.accept(null);
+            return;
+        }
+
         PlaceholderContext context = PlaceholderContext.builder()
             .with(CommonPlaceholders.PLAYER.resolver(player))
             .andThen(CommonPlaceholders.forPlaceholderAPI(player))
