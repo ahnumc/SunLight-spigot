@@ -455,6 +455,12 @@ Generic:
     Cooldown:
       Default: '[prefix="false"]<soft_red>你必须等待 <white>%time%</white> 才能再次使用 <white>%command%</white></soft_red>'
       OneTime: '[prefix="false"]<soft_red>此命令是一次性的，你已使用过</soft_red>'
+CommandCost:
+  Error:
+    EconomyUnavailable: <soft_red>此命令需要 <white>%amount%</white>，但服务器经济系统不可用</soft_red>
+    InsufficientFunds: <soft_red>你需要 <white>%amount%</white> 才能使用此命令</soft_red>
+  Charge:
+    Notify: <gray>你支付了 <soft_yellow>%amount%</soft_yellow> 来使用此命令</gray>
 Teleport:
   Unsafe:
     Feedback: <gray>无法传送 <white>%player_display_name%</white>，因为位置无效或不安全</gray>

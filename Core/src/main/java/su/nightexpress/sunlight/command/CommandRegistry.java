@@ -25,6 +25,7 @@ import su.nightexpress.sunlight.command.provider.definition.HubDefinition;
 import su.nightexpress.sunlight.command.provider.definition.LiteralDefinition;
 import su.nightexpress.sunlight.config.Lang;
 import su.nightexpress.sunlight.config.Perms;
+import su.nightexpress.sunlight.module.commandcost.CommandCostModule;
 import su.nightexpress.sunlight.user.SunUser;
 
 import java.util.*;
@@ -35,18 +36,22 @@ public class CommandRegistry extends SimpleManager<SunLightPlugin> {
 
     private final Map<String, CommandProvider> providers;
     private final Set<NightCommand>            commands;
+    private boolean                           providersReady;
 
     public CommandRegistry(@NotNull SunLightPlugin plugin) {
         super(plugin);
         this.settings = new CommandSettings();
         this.providers = new LinkedHashMap<>();
         this.commands = new HashSet<>();
+        this.providersReady = false;
     }
 
     @Override
     protected void onLoad() {
         this.settings.load(this.plugin.getConfig());
         this.registerCommands();
+        this.providersReady = true;
+        this.plugin.getModuleRegistry().byType(CommandCostModule.class).ifPresent(CommandCostModule::reloadCosts);
     }
 
     @Override
@@ -54,10 +59,24 @@ public class CommandRegistry extends SimpleManager<SunLightPlugin> {
         this.commands.forEach(NightCommand::unregister);
         this.commands.clear();
         this.providers.clear();
+        this.providersReady = false;
     }
 
     public void addProvider(@NotNull String id, @NotNull CommandProvider provider) {
         this.providers.put(LowerCase.INTERNAL.apply(id), provider);
+    }
+
+    @NotNull
+    public Optional<CommandProvider> getProvider(@NotNull String id) {
+        return Optional.ofNullable(this.providers.get(LowerCase.INTERNAL.apply(id)));
+    }
+
+    public boolean isProvidersReady() {
+        return this.providersReady;
+    }
+
+    public static boolean hasUsableAlias(@NotNull String[] aliases) {
+        return Arrays.stream(aliases).anyMatch(alias -> alias != null && !alias.isBlank());
     }
 
     private void registerCommands() {
@@ -72,13 +91,13 @@ public class CommandRegistry extends SimpleManager<SunLightPlugin> {
             provider.getLiteralBuilders().forEach((nodeId, consumer) -> {
                 LiteralDefinition literalDefinition = provider.getLiteralDefinitions().get(nodeId);
                 if (literalDefinition == null || !literalDefinition.enabled()) return;
+                if (!hasUsableAlias(literalDefinition.aliases())) {
+                    this.plugin.warn("Literal command '%s.%s' was not registered due to no aliases available.".formatted(providerId, nodeId));
+                    return;
+                }
 
                 this.register(NightCommand.literal(this.plugin, literalDefinition.aliases(), builder -> {
-                    consumer.accept(builder);
-
-                    if (this.settings.isCooldownsEnabled()) {
-                        this.wrapExecutorWithCooldown(providerId, nodeId, literalDefinition, builder);
-                    }
+                    this.configureLiteralNode(providerId, nodeId, null, nodeId, literalDefinition, builder, consumer);
                 }));
             });
 
@@ -86,6 +105,10 @@ public class CommandRegistry extends SimpleManager<SunLightPlugin> {
             provider.getRootBuilders().forEach((rootId, rootBuilder) -> {
                 HubDefinition rootDefinition = provider.getRootDefinitions().get(rootId);
                 if (rootDefinition == null || !rootDefinition.enabled()) return;
+                if (!hasUsableAlias(rootDefinition.aliases())) {
+                    this.plugin.warn("Root command '%s' was not registered due to no aliases available.".formatted(rootDefinition.name()));
+                    return;
+                }
 
                 List<LiteralNode> childrens = new ArrayList<>();
 
@@ -93,7 +116,9 @@ public class CommandRegistry extends SimpleManager<SunLightPlugin> {
                     String alias = rootDefinition.childrenAliases().get(nodeId);
                     if (alias == null || alias.isBlank()) return;
 
-                    childrens.add(Commands.literal(alias, consumer));
+                    LiteralDefinition literalDefinition = provider.getLiteralDefinitions().get(nodeId);
+                    childrens.add(Commands.literal(alias, builder -> this.configureLiteralNode(providerId, rootId,
+                        nodeId, nodeId, literalDefinition, builder, consumer)));
                 });
 
                 if (childrens.isEmpty()) {
@@ -129,15 +154,30 @@ public class CommandRegistry extends SimpleManager<SunLightPlugin> {
         return new HashSet<>(this.providers.values());
     }
 
-    private void wrapExecutorWithCooldown(@NotNull String providerId, @NotNull String nodeId, @NotNull LiteralDefinition definition, @NotNull LiteralNodeBuilder builder) {
-        NodeExecutor executor = builder.getExecutor(); // Original executor set by the provider implementation.
+    private void configureLiteralNode(@NotNull String providerId,
+                                      @NotNull String costNodeId,
+                                      String costChildId,
+                                      @NotNull String cooldownNodeId,
+                                      LiteralDefinition definition,
+                                      @NotNull LiteralNodeBuilder builder,
+                                      @NotNull java.util.function.Consumer<LiteralNodeBuilder> consumer) {
+        consumer.accept(builder);
+        this.wrapExecutor(providerId, costNodeId, costChildId, cooldownNodeId, definition, builder);
+    }
 
-        int cooldown = definition.cooldown();
+    private void wrapExecutor(@NotNull String providerId,
+                              @NotNull String costNodeId,
+                              String costChildId,
+                              @NotNull String cooldownNodeId,
+                              LiteralDefinition definition,
+                              @NotNull LiteralNodeBuilder builder) {
+        NodeExecutor executor = builder.getExecutor(); // Original executor set by the provider implementation.
+        int cooldown = this.settings.isCooldownsEnabled() && definition != null ? definition.cooldown() : 0;
 
         builder.executes((context, arguments) -> {
             Player player = context.getPlayer();
-            SunUser user = player == null ? null : this.plugin.getUserManager().getOrFetch(player);
-            CommandKey key = new CommandKey(providerId, nodeId);
+            SunUser user = cooldown == 0 || player == null ? null : this.plugin.getUserManager().getOrFetch(player);
+            CommandKey key = new CommandKey(providerId, cooldownNodeId);
 
             if (cooldown != 0 && user != null && !player.hasPermission(Perms.BYPASS_COMMAND_COOLDOWN)) {
                 Long expireDate = user.getCommandCooldown(key);
@@ -150,6 +190,10 @@ public class CommandRegistry extends SimpleManager<SunLightPlugin> {
                 }
             }
 
+            if (player != null && !this.chargeCommandCost(player, providerId, costNodeId, costChildId)) {
+                return false;
+            }
+
             boolean result = executor.run(context, arguments);
             if (result && cooldown != 0 && user != null) {
                 long expireDate = TimeUtil.createFutureTimestamp(cooldown);
@@ -160,6 +204,12 @@ public class CommandRegistry extends SimpleManager<SunLightPlugin> {
 
             return result;
         });
+    }
+
+    private boolean chargeCommandCost(@NotNull Player player, @NotNull String providerId, @NotNull String nodeId, String childId) {
+        return this.plugin.getModuleRegistry().byType(CommandCostModule.class)
+            .map(module -> module.charge(player, providerId, nodeId, childId))
+            .orElse(true);
     }
 
     private void unregisterConflicts(@NotNull NightCommand command) {

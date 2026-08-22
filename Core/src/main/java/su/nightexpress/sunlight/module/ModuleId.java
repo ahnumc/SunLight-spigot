@@ -6,6 +6,7 @@ public class ModuleId {
     public static final String BANS           = "bans";
     public static final String BACK_LOCATION  = "back_location";
     public static final String CHAT           = "chat";
+    public static final String COMMAND_COST   = "command_cost";
     public static final String CUSTOM_TEXT    = "custom_text";
     public static final String DEATH_MESSAGES = "death_messages";
     public static final String ESSENTIAL      = "essential";

@@ -34,6 +34,7 @@ import su.nightexpress.sunlight.module.afk.AfkModule;
 import su.nightexpress.sunlight.module.backlocation.BackLocationModule;
 import su.nightexpress.sunlight.module.bans.BansModule;
 import su.nightexpress.sunlight.module.chat.ChatModule;
+import su.nightexpress.sunlight.module.commandcost.CommandCostModule;
 import su.nightexpress.sunlight.module.deathmessages.DeathMessagesModule;
 import su.nightexpress.sunlight.module.essential.EssentialModule;
 import su.nightexpress.sunlight.module.extras.ExtrasModule;
@@ -200,6 +201,9 @@ public class SunLightPlugin extends NightPlugin implements SunlightAPI, ModuleCo
             context -> new WarmupsModule(context, this.teleportManager));
         loader.register(ModuleId.WARPS, ModuleDefinition.named("Warps"),
             context -> new WarpsModule(context, this.teleportManager));
+
+        // Load last so command-cost rules can be validated against every registered SunLight provider.
+        loader.register(ModuleId.COMMAND_COST, ModuleDefinition.named("Command Cost"), CommandCostModule::new);
 
         //loader.register(ModuleId.SPAWNERS, ModuleDefinition.named("Spawners"), SpawnersModule::new);
         //loader.register(ModuleId.SOCIALS, ModuleDefinition.named("Socials"), SocialsModule::new);
